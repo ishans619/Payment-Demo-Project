@@ -1,13 +1,13 @@
 package com.example.payment_demo.controller;
 
+import com.example.payment_demo.dto.PaymentWebhookRequest;
 import com.example.payment_demo.model.OrderEntity;
 import com.example.payment_demo.model.PaymentEntity;
 import com.example.payment_demo.service.PaymentService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api")
@@ -26,5 +26,9 @@ public class PaymentController {
         return service.createPayment(OrderId, idempotencyKey);
     }
 
-
+    @PostMapping("/webhook")
+    public ResponseEntity<PaymentEntity> handleWebhook(@RequestBody PaymentWebhookRequest request){
+        PaymentEntity payment = service.handleWebhook(request);
+        return new ResponseEntity<>(payment, HttpStatus.OK);
+    }
 }
