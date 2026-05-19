@@ -49,11 +49,8 @@ public class PaymentService {
     }
 
     public PaymentEntity handleWebhook(PaymentWebhookRequest request){
-        PaymentEntity payment = paymentRepository.findAll()
-                .stream()
-                .filter(p -> p.getPaymentReference().equals(request.getPaymentReference()))
-                .findFirst()
-                .orElseThrow(() -> new RuntimeException("Order not found"));
+        PaymentEntity payment = paymentRepository.findByPaymentReference(request.getPaymentReference())
+                .orElseThrow(() -> new RuntimeException("Payment not found"));
 
         OrderEntity order = orderRepository.findById(payment.getOrderId())
                 .orElseThrow(() -> new RuntimeException("Order not found"));
