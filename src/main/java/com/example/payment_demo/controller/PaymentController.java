@@ -1,5 +1,7 @@
 package com.example.payment_demo.controller;
 
+import com.example.payment_demo.dto.OrderResponseDto;
+import com.example.payment_demo.dto.PaymentResponseDto;
 import com.example.payment_demo.dto.PaymentWebhookRequest;
 import com.example.payment_demo.model.OrderEntity;
 import com.example.payment_demo.model.PaymentEntity;
@@ -17,18 +19,17 @@ public class PaymentController {
     private PaymentService service;
 
     @PostMapping("/orders")
-    public OrderEntity createOrder(@RequestParam String productName, @RequestParam Integer amount){
-        return service.createOrder(productName, amount);
+    public ResponseEntity<OrderResponseDto> createOrder(@RequestParam String productName, @RequestParam Integer amount){
+        return new ResponseEntity<>(service.createOrder(productName, amount), HttpStatus.CREATED);
     }
 
     @PostMapping("/payments")
-    public PaymentEntity createPayment(@RequestParam Long OrderId, @RequestParam String idempotencyKey){
-        return service.createPayment(OrderId, idempotencyKey);
+    public ResponseEntity<PaymentResponseDto> createPayment(@RequestParam Long orderId, @RequestParam String idempotencyKey){
+        return new ResponseEntity<>(service.createPayment(orderId, idempotencyKey), HttpStatus.CREATED);
     }
-
     @PostMapping("/webhook")
-    public ResponseEntity<PaymentEntity> handleWebhook(@RequestBody PaymentWebhookRequest request){
-        PaymentEntity payment = service.handleWebhook(request);
-        return new ResponseEntity<>(payment, HttpStatus.OK);
+    public ResponseEntity<PaymentResponseDto> handleWebhook(@RequestBody PaymentWebhookRequest request){
+        PaymentResponseDto paymentdto = service.handleWebhook(request);
+        return new ResponseEntity<>(paymentdto, HttpStatus.OK);
     }
 }

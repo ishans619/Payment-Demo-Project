@@ -1,6 +1,13 @@
 package com.example.payment_demo.service;
 
+import com.example.payment_demo.Mapper.OrderDtoMapper;
+import com.example.payment_demo.Mapper.PaymentDtoMapper;
+import com.example.payment_demo.dto.OrderResponseDto;
+import com.example.payment_demo.dto.PaymentResponseDto;
 import com.example.payment_demo.dto.PaymentWebhookRequest;
+import com.example.payment_demo.exception.InvalidEventTypeException;
+import com.example.payment_demo.exception.PaymentStateException;
+import com.example.payment_demo.exception.ResourceNotFoundException;
 import com.example.payment_demo.model.OrderEntity;
 import com.example.payment_demo.model.PaymentEntity;
 import com.example.payment_demo.repository.OrderRepository;
@@ -18,23 +25,31 @@ public class PaymentService {
     private OrderRepository orderRepository;
     @Autowired
     private PaymentRepository paymentRepository;
+    @Autowired
+    private OrderDtoMapper orderDtoMapper;
+    @Autowired
+    private PaymentDtoMapper paymentDtoMapper;
 
-    public OrderEntity createOrder(String productName, Integer amount){
+    public OrderResponseDto createOrder(String productName, Integer amount){
         OrderEntity order = new OrderEntity();
         order.setProductName(productName);
         order.setAmount(amount);
         order.setStatus("CREATED");
-        return orderRepository.save(order);
+
+        orderRepository.save(order);
+        OrderResponseDto dto = orderDtoMapper.toDto(order);
+        return dto;
     }
 
-    public PaymentEntity createPayment(Long orderId, String idempotencyKey){
+    public PaymentResponseDto createPayment(Long orderId, String idempotencyKey){
         Optional<PaymentEntity> existingPayment = paymentRepository.findByIdempotencyKey(idempotencyKey);
 
         if(existingPayment.isPresent()){
-            return existingPayment.get();
+            return paymentDtoMapper.toDto(existingPayment.get());
         }
 
-        OrderEntity order = orderRepository.findById(orderId).orElseThrow(() -> new RuntimeException("Order not found"));
+        OrderEntity order = orderRepository.findById(orderId).orElseThrow(() -> new ResourceNotFoundException("Order not found with" +
+                "id: " + orderId));
 
         PaymentEntity payment = new PaymentEntity();
         payment.setOrderId(order.getId());
@@ -45,15 +60,21 @@ public class PaymentService {
         order.setStatus("PAYMENT_PENDING");
         orderRepository.save(order);
 
-        return paymentRepository.save(payment);
+        paymentRepository.save(payment);
+        PaymentResponseDto dto = paymentDtoMapper.toDto(payment);
+        return dto;
     }
 
-    public PaymentEntity handleWebhook(PaymentWebhookRequest request){
+    public PaymentResponseDto handleWebhook(PaymentWebhookRequest request){
         PaymentEntity payment = paymentRepository.findByPaymentReference(request.getPaymentReference())
-                .orElseThrow(() -> new RuntimeException("Payment not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Payment not found with reference: " + request.getPaymentReference()));
 
         OrderEntity order = orderRepository.findById(payment.getOrderId())
-                .orElseThrow(() -> new RuntimeException("Order not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + payment.getOrderId()));
+
+        if("SUCCESS".equals(payment.getStatus()) || "FAILED".equals(payment.getStatus())){
+            throw new PaymentStateException("Payment is already in a final state");
+        }
 
         if("payment_intent.succeeded".equals(request.getEventType())){
             payment.setStatus("SUCCESS");
@@ -68,10 +89,13 @@ public class PaymentService {
             order.setStatus("PAYMENT_PENDING");
         }
         else{
-            throw new IllegalArgumentException("Unsupported event type: " + request.getEventType());
+            throw new InvalidEventTypeException("Unsupported event type: " + request.getEventType());
         }
 
         orderRepository.save(order);
-        return paymentRepository.save(payment);
+        paymentRepository.save(payment);
+
+        PaymentResponseDto paymentDto = paymentDtoMapper.toDto(payment);
+        return paymentDto;
     }
 }
