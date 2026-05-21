@@ -98,4 +98,16 @@ public class PaymentService {
         PaymentResponseDto paymentDto = paymentDtoMapper.toDto(payment);
         return paymentDto;
     }
+
+    public OrderResponseDto getOrderById(Long id){
+        OrderEntity order = orderRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with id : " + id));
+        return orderDtoMapper.toDto(order);
+    }
+
+    public PaymentResponseDto getPaymentByReference(String paymentReference){
+        PaymentEntity payment = paymentRepository.findByPaymentReference(paymentReference)
+                .orElseThrow(() -> new ResourceNotFoundException("Payment not found with reference: " + paymentReference));
+        return paymentDtoMapper.toDto(payment);
+    }
 }

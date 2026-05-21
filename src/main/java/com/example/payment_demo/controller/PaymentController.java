@@ -32,4 +32,14 @@ public class PaymentController {
         PaymentResponseDto paymentdto = service.handleWebhook(request);
         return new ResponseEntity<>(paymentdto, HttpStatus.OK);
     }
+
+    @GetMapping("/orders/{id}")
+    public ResponseEntity<OrderResponseDto> getOrderById(@PathVariable Long id){
+        return new ResponseEntity<>(service.getOrderById(id), HttpStatus.OK);
+    }
+
+    @GetMapping("/payments/{paymentReference}")
+    public ResponseEntity<PaymentResponseDto> getPaymentByReference(@PathVariable String paymentReference){
+        return new ResponseEntity<>(service.getPaymentByReference(paymentReference), HttpStatus.OK);
+    }
 }
