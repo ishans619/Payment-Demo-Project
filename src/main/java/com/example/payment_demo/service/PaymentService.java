@@ -12,6 +12,7 @@ import com.example.payment_demo.model.OrderEntity;
 import com.example.payment_demo.model.PaymentEntity;
 import com.example.payment_demo.repository.OrderRepository;
 import com.example.payment_demo.repository.PaymentRepository;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -41,6 +42,7 @@ public class PaymentService {
         return dto;
     }
 
+    @Transactional
     public PaymentResponseDto createPayment(Long orderId, String idempotencyKey){
         Optional<PaymentEntity> existingPayment = paymentRepository.findByIdempotencyKey(idempotencyKey);
 
@@ -65,6 +67,7 @@ public class PaymentService {
         return dto;
     }
 
+    @Transactional
     public PaymentResponseDto handleWebhook(PaymentWebhookRequest request){
         PaymentEntity payment = paymentRepository.findByPaymentReference(request.getPaymentReference())
                 .orElseThrow(() -> new ResourceNotFoundException("Payment not found with reference: " + request.getPaymentReference()));
