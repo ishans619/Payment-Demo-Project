@@ -2,6 +2,7 @@ package com.example.payment_demo.service;
 
 import com.example.payment_demo.Mapper.OrderDtoMapper;
 import com.example.payment_demo.Mapper.PaymentDtoMapper;
+import com.example.payment_demo.dto.OrderDetailsResponseDto;
 import com.example.payment_demo.dto.OrderResponseDto;
 import com.example.payment_demo.dto.PaymentResponseDto;
 import com.example.payment_demo.dto.PaymentWebhookRequest;
@@ -112,5 +113,22 @@ public class PaymentService {
         PaymentEntity payment = paymentRepository.findByPaymentReference(paymentReference)
                 .orElseThrow(() -> new ResourceNotFoundException("Payment not found with reference: " + paymentReference));
         return paymentDtoMapper.toDto(payment);
+    }
+
+    public OrderDetailsResponseDto getOrderDetails(Long orderId){
+        OrderEntity order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + orderId));
+
+        OrderResponseDto orderDto = orderDtoMapper.toDto(order);
+
+        PaymentEntity payment = paymentRepository.findFirstByOrderId(orderId).orElse(null);
+
+        PaymentResponseDto paymentDto = null;
+
+        if(payment != null){
+            paymentDto = paymentDtoMapper.toDto(payment);
+        }
+
+        return new OrderDetailsResponseDto(orderDto, paymentDto);
     }
 }

@@ -1,5 +1,6 @@
 package com.example.payment_demo.controller;
 
+import com.example.payment_demo.dto.OrderDetailsResponseDto;
 import com.example.payment_demo.dto.OrderResponseDto;
 import com.example.payment_demo.dto.PaymentResponseDto;
 import com.example.payment_demo.dto.PaymentWebhookRequest;
@@ -41,5 +42,10 @@ public class PaymentController {
     @GetMapping("/payments/{paymentReference}")
     public ResponseEntity<PaymentResponseDto> getPaymentByReference(@PathVariable String paymentReference){
         return new ResponseEntity<>(service.getPaymentByReference(paymentReference), HttpStatus.OK);
+    }
+
+    @GetMapping("/orders/{orderId}/details")
+    public ResponseEntity<OrderDetailsResponseDto> getOrderDetails(@PathVariable Long orderId){
+        return new ResponseEntity<>(service.getOrderDetails(orderId), HttpStatus.OK);
     }
 }
