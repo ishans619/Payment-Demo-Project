@@ -12,6 +12,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api")
 public class PaymentController {
@@ -47,5 +49,10 @@ public class PaymentController {
     @GetMapping("/orders/{orderId}/details")
     public ResponseEntity<OrderDetailsResponseDto> getOrderDetails(@PathVariable Long orderId){
         return new ResponseEntity<>(service.getOrderDetails(orderId), HttpStatus.OK);
+    }
+
+    @GetMapping("orders/{orderId}/payments")
+    public ResponseEntity<List<PaymentResponseDto>> getPaymentsByOrderId(@PathVariable Long orderId){
+        return new ResponseEntity<>(service.getPaymentsByOrderId(orderId), HttpStatus.OK);
     }
 }

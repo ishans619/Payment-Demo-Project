@@ -17,6 +17,7 @@ import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -130,5 +131,14 @@ public class PaymentService {
         }
 
         return new OrderDetailsResponseDto(orderDto, paymentDto);
+    }
+
+    public List<PaymentResponseDto> getPaymentsByOrderId(Long orderId){
+        OrderEntity order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with id:" + orderId));
+
+        List<PaymentEntity> payments = paymentRepository.findByOrderIdOrderByIdDesc(order.getId());
+
+        return payments.stream().map(paymentDtoMapper::toDto).toList();
     }
 }
