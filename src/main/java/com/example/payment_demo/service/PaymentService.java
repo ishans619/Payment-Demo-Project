@@ -7,6 +7,7 @@ import com.example.payment_demo.dto.OrderResponseDto;
 import com.example.payment_demo.dto.PaymentResponseDto;
 import com.example.payment_demo.dto.PaymentWebhookRequest;
 import com.example.payment_demo.exception.InvalidEventTypeException;
+import com.example.payment_demo.exception.PaymentRetryNotAllowedExeption;
 import com.example.payment_demo.exception.PaymentStateException;
 import com.example.payment_demo.exception.ResourceNotFoundException;
 import com.example.payment_demo.model.OrderEntity;
@@ -59,7 +60,7 @@ public class PaymentService {
         payment.setOrderId(order.getId());
         payment.setIdempotencyKey(idempotencyKey);
         payment.setPaymentReference("PAY_" + UUID.randomUUID());
-        payment.setStatus("POCESSING");
+        payment.setStatus("PROCESSING");
 
         order.setStatus("PAYMENT_PENDING");
         orderRepository.save(order);
@@ -140,5 +141,50 @@ public class PaymentService {
         List<PaymentEntity> payments = paymentRepository.findByOrderIdOrderByIdDesc(order.getId());
 
         return payments.stream().map(paymentDtoMapper::toDto).toList();
+    }
+
+    @Transactional
+    public PaymentResponseDto retryPayment(Long orderId){
+        OrderEntity order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with order id: " + orderId));
+
+        Optional<PaymentEntity> lastPaymentOpt = paymentRepository.findFirstByOrderIdOrderByIdDesc(orderId);
+
+        System.out.println("Last payment found: " + lastPaymentOpt.isPresent());
+        if (lastPaymentOpt.isPresent()) {
+            System.out.println("Last payment status: " + lastPaymentOpt.get().getStatus());
+        }
+
+        if(lastPaymentOpt.isEmpty()){
+            throw new PaymentRetryNotAllowedExeption(
+                    "No previous payment found for order. Use create payment instead."
+            );
+        }
+
+        PaymentEntity lastPayment = lastPaymentOpt.get();
+
+        if("SUCCESS".equals(lastPayment.getStatus())){
+            throw new PaymentRetryNotAllowedExeption(
+                    "Payment already succeeded. Retry is not allowed."
+            );
+        }
+
+        if("PROCESSING".equals(lastPayment.getStatus())){
+            throw new PaymentRetryNotAllowedExeption(
+                    "Payment is already in processing state. Wait for it to get completed."
+            );
+        }
+
+        PaymentEntity retryPayment = new PaymentEntity();
+        retryPayment.setOrderId(orderId);
+        retryPayment.setIdempotencyKey("RETRY_" + UUID.randomUUID());
+        retryPayment.setPaymentReference("PAY_" + UUID.randomUUID());
+        retryPayment.setStatus("PROCESSING");
+
+        order.setStatus("PAYMENT_PENDING");
+        orderRepository.save(order);
+
+        return paymentDtoMapper.toDto(paymentRepository.save(retryPayment));
+
     }
 }
