@@ -58,6 +58,6 @@ public class PaymentController {
 
     @PostMapping("orders/{orderId}/payments/retry")
     public ResponseEntity<PaymentResponseDto> retryPayment(@PathVariable Long orderId){
-        return new ResponseEntity<>(service.retryPayment(orderId), HttpStatus.OK);
+        return new ResponseEntity<>(service.retryPayment(orderId) + "retry for payment", HttpStatus.OK);
     }
 }
